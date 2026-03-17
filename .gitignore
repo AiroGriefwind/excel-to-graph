@@ -1,0 +1,10 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Streamlit local state
+.streamlit/filter_presets.json
+
+# Local test excel samples should not be versioned
+tests/mocks/*.xlsx
+
