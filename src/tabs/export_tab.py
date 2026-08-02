@@ -47,7 +47,7 @@ def _render_preview_html(report_df: pd.DataFrame) -> None:
       .report-preview-table th, .report-preview-table td {{
         border: 1px solid rgba(120,120,120,0.35);
         padding: 0.45rem 0.6rem;
-        text-align: center;
+        text-align: right;
         white-space: nowrap;
       }}
       .report-preview-table th {{
@@ -73,7 +73,7 @@ def render_export_section(raw_df: pd.DataFrame, filtered_df: pd.DataFrame) -> No
 
     respect_filters = st.checkbox(
         "受篩選器影響",
-        value=False,
+        value=True,
         key="report_respect_filters",
         help="勾選後，預覽與匯出都按當前篩選結果統計；取消勾選則始終統計全部上傳數據。",
     )

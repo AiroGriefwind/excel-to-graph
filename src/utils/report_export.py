@@ -159,7 +159,8 @@ def build_report_docx(
         if idx == 0:
             _set_cell_no_wrap(header_cells[idx])
         for paragraph in header_cells[idx].paragraphs:
-            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            # 數字列表頭靠右；分類列靠左
+            paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT if idx == 0 else WD_ALIGN_PARAGRAPH.RIGHT
             for run in paragraph.runs:
                 _set_run_font(run, font_size=11)
                 run.bold = True
@@ -183,7 +184,7 @@ def build_report_docx(
             if idx == 0:
                 _set_cell_no_wrap(cells[idx])
             for paragraph in cells[idx].paragraphs:
-                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER if idx > 0 else WD_ALIGN_PARAGRAPH.LEFT
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT if idx == 0 else WD_ALIGN_PARAGRAPH.RIGHT
                 for run in paragraph.runs:
                     _set_run_font(run, font_size=11)
                     if str(row["分類"]) == TOTAL_LABEL:
