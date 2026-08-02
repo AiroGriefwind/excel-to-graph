@@ -114,11 +114,45 @@ def _set_cell_no_wrap(cell) -> None:
     tc_pr.append(OxmlElement("w:noWrap"))
 
 
-def _category_column_width_cm() -> float:
-    labels = [label for _, label in REPORT_CATEGORY_ROWS] + [TOTAL_LABEL, "分類"]
-    max_len = max(len(label) for label in labels)
-    # 中文字約 0.42cm/字（11pt），再加左右邊距
-    return max(4.2, max_len * 0.42 + 0.6)
+def _estimate_text_width_cm(text: str) -> float:
+    """依內容估算列寬：中文較寬、數字/符號較窄，並加邊距。"""
+    width = 0.0
+    for ch in str(text):
+        code = ord(ch)
+        if 0x4E00 <= code <= 0x9FFF or ch in "（）/":
+            width += 0.42
+        else:
+            width += 0.28
+    return width + 0.55
+
+
+def _row_display_values(row: pd.Series) -> list[str]:
+    return [
+        str(row["分類"]),
+        format_report_number(row["數目"]),
+        format_report_number(row["瀏覽量"]),
+        format_report_number(row["平均瀏覽量"]),
+        format_report_number(row["互動量"]),
+        format_report_number(row["平均互動量"]),
+    ]
+
+
+def _compute_column_widths_cm(report_df: pd.DataFrame) -> list[float]:
+    """按每列最長內容自由調整列寬，保證單行完整顯示。"""
+    max_widths = [_estimate_text_width_cm(col) for col in DISPLAY_COLUMNS]
+    for _, row in report_df.iterrows():
+        values = _row_display_values(row)
+        for idx, value in enumerate(values):
+            max_widths[idx] = max(max_widths[idx], _estimate_text_width_cm(value))
+
+    # 分類列保底略寬；數字列也給最小寬度避免過窄
+    mins = [4.2, 1.8, 2.4, 2.2, 2.4, 2.2]
+    return [max(mins[i], max_widths[i]) for i in range(len(DISPLAY_COLUMNS))]
+
+
+def _apply_row_widths(cells, widths_cm: list[float]) -> None:
+    for idx, width_cm in enumerate(widths_cm):
+        cells[idx].width = Cm(width_cm)
 
 
 def build_report_docx(
@@ -146,18 +180,13 @@ def build_report_docx(
     table.autofit = False
     table.allow_autofit = False
 
-    category_width = Cm(_category_column_width_cm())
-    other_width = Cm(2.4)
-    for row in table.rows:
-        row.cells[0].width = category_width
-        for idx in range(1, len(DISPLAY_COLUMNS)):
-            row.cells[idx].width = other_width
+    widths_cm = _compute_column_widths_cm(report_df)
+    _apply_row_widths(table.rows[0].cells, widths_cm)
 
     header_cells = table.rows[0].cells
     for idx, col_name in enumerate(DISPLAY_COLUMNS):
         header_cells[idx].text = col_name
-        if idx == 0:
-            _set_cell_no_wrap(header_cells[idx])
+        _set_cell_no_wrap(header_cells[idx])
         for paragraph in header_cells[idx].paragraphs:
             # 數字列表頭靠右；分類列靠左
             paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT if idx == 0 else WD_ALIGN_PARAGRAPH.RIGHT
@@ -167,22 +196,11 @@ def build_report_docx(
 
     for _, row in report_df.iterrows():
         cells = table.add_row().cells
-        cells[0].width = category_width
-        for idx in range(1, len(DISPLAY_COLUMNS)):
-            cells[idx].width = other_width
-
-        values: Iterable = [
-            row["分類"],
-            format_report_number(row["數目"]),
-            format_report_number(row["瀏覽量"]),
-            format_report_number(row["平均瀏覽量"]),
-            format_report_number(row["互動量"]),
-            format_report_number(row["平均互動量"]),
-        ]
+        _apply_row_widths(cells, widths_cm)
+        values: Iterable = _row_display_values(row)
         for idx, value in enumerate(values):
             cells[idx].text = str(value)
-            if idx == 0:
-                _set_cell_no_wrap(cells[idx])
+            _set_cell_no_wrap(cells[idx])
             for paragraph in cells[idx].paragraphs:
                 paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT if idx == 0 else WD_ALIGN_PARAGRAPH.RIGHT
                 for run in paragraph.runs:
