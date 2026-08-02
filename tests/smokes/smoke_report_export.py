@@ -9,7 +9,11 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from src.utils.report_export import build_report_docx, build_report_table  # noqa: E402
+from src.utils.report_export import (  # noqa: E402
+    build_report_docx,
+    build_report_table,
+    format_report_number,
+)
 
 
 def main() -> None:
@@ -52,6 +56,10 @@ def main() -> None:
     assert int(total["數目"]) == 8  # 含新聞報道
     assert int(total["瀏覽量"]) == 2149
     assert total["平均互動量"] == ""  # 總數行不統計平均互動量
+
+    assert format_report_number(8818979) == "8,818,979"
+    assert format_report_number(12344.8) == "12,344.8"
+    assert format_report_number("") == ""
 
     docx_bytes = build_report_docx(report)
     assert docx_bytes[:2] == b"PK"  # docx 是 zip 容器

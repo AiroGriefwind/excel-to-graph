@@ -12,6 +12,7 @@ from src.utils.report_export import (
     build_report_docx,
     build_report_table,
     default_report_filename,
+    format_report_number,
 )
 
 
@@ -22,11 +23,11 @@ def _render_preview_html(report_df: pd.DataFrame) -> None:
     for _, row in report_df.iterrows():
         values = [
             row["分類"],
-            row["數目"],
-            row["瀏覽量"],
-            row["平均瀏覽量"],
-            row["互動量"],
-            row["平均互動量"],
+            format_report_number(row["數目"]),
+            format_report_number(row["瀏覽量"]),
+            format_report_number(row["平均瀏覽量"]),
+            format_report_number(row["互動量"]),
+            format_report_number(row["平均互動量"]),
         ]
         is_total = str(row["分類"]) == TOTAL_LABEL
         cells = "".join(
@@ -41,18 +42,22 @@ def _render_preview_html(report_df: pd.DataFrame) -> None:
         width: 100%;
         border-collapse: collapse;
         margin: 0.4rem 0 0.8rem 0;
+        table-layout: auto;
       }}
       .report-preview-table th, .report-preview-table td {{
         border: 1px solid rgba(120,120,120,0.35);
         padding: 0.45rem 0.6rem;
         text-align: center;
+        white-space: nowrap;
       }}
       .report-preview-table th {{
         background: rgba(120,120,120,0.12);
         font-weight: 600;
       }}
-      .report-preview-table td:first-child {{
+      .report-preview-table td:first-child,
+      .report-preview-table th:first-child {{
         text-align: left;
+        white-space: nowrap;
       }}
     </style>
     <table class="report-preview-table">
