@@ -20,6 +20,7 @@ excel-to-graph/
       filter_tab.py
       chart_tab.py
       content_tab.py
+      export_tab.py
       sidebar_tab.py
     utils/
       __init__.py
@@ -30,6 +31,7 @@ excel-to-graph/
       metrics.py
       presets.py
       chart_data.py
+      report_export.py
       state.py
   tests/
     mocks/
@@ -38,6 +40,7 @@ excel-to-graph/
       smoke_data_pipeline.py
       smoke_filter_presets.py
       smoke_format_normalize.py
+      smoke_report_export.py
   docs/
     governance/
       IMPLEMENTATION_PLAN.MD

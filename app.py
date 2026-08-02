@@ -8,6 +8,7 @@ import streamlit as st
 from src.tabs import (
     render_chart_section,
     render_content_section,
+    render_export_section,
     render_filter_panel,
     render_header_and_presets,
     render_sidebar_upload,
@@ -66,6 +67,7 @@ def main() -> None:
     st.session_state.filtered_df = filtered_df
 
     render_chart_section(filtered_df)
+    render_export_section(raw_df, filtered_df)
     render_content_section(filtered_df)
 
 

@@ -8,6 +8,7 @@
 - `pandas`：Excel 读取与数据处理
 - `openpyxl`：`.xlsx` 引擎
 - `plotly`：交互图表（饼图、折线图）
+- `python-docx`：导出 Word（.docx）统计报告
 
 ## 测试与脚本
 - Python 脚本式 smoke tests（`tests/smokes/`）
