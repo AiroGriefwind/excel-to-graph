@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import html
+from datetime import date
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -14,6 +16,41 @@ from src.utils.report_export import (
     default_report_filename,
     format_report_number,
 )
+
+
+def _format_date_ymd(value: Any) -> str | None:
+    if value is None or value == "":
+        return None
+    if isinstance(value, date) and not isinstance(value, pd.Timestamp):
+        return value.strftime("%Y/%m/%d")
+    parsed = pd.to_datetime(value, errors="coerce")
+    if pd.isna(parsed):
+        return None
+    return parsed.strftime("%Y/%m/%d")
+
+
+def _date_range_subtitle(filters: dict[str, Any] | None, fallback_df: pd.DataFrame) -> str:
+    """副標題統一為篩選條件中的開始日期 - 結束日期（YYYY/MM/DD）。"""
+    filters = filters or {}
+    start = _format_date_ymd(filters.get("date_start"))
+    end = _format_date_ymd(filters.get("date_end"))
+
+    if (start is None or end is None) and fallback_df is not None and not fallback_df.empty:
+        if "date" in fallback_df.columns:
+            series = pd.to_datetime(fallback_df["date"], errors="coerce").dropna()
+            if not series.empty:
+                if start is None:
+                    start = series.min().strftime("%Y/%m/%d")
+                if end is None:
+                    end = series.max().strftime("%Y/%m/%d")
+
+    if start and end:
+        return f"{start} - {end}"
+    if start:
+        return start
+    if end:
+        return end
+    return ""
 
 
 def _render_preview_html(report_df: pd.DataFrame) -> None:
@@ -81,10 +118,13 @@ def render_export_section(raw_df: pd.DataFrame, filtered_df: pd.DataFrame) -> No
     source_df = filtered_df if respect_filters else raw_df
     if respect_filters:
         st.caption("當前模式：跟隨篩選器。僅統計下列固定分類。")
-        subtitle = "基於當前篩選條件匯出"
     else:
         st.caption("當前模式：統計全部上傳數據（不受篩選器影響）。僅統計下列固定分類。")
-        subtitle = "基於全部上傳數據匯出（不受篩選器影響）"
+
+    active_filters = st.session_state.get("active_filters") or {}
+    subtitle = _date_range_subtitle(active_filters, raw_df)
+    if subtitle:
+        st.caption(subtitle)
 
     report_df = build_report_table(source_df)
     _render_preview_html(report_df)
@@ -95,7 +135,7 @@ def render_export_section(raw_df: pd.DataFrame, filtered_df: pd.DataFrame) -> No
     docx_bytes = build_report_docx(
         report_df,
         title="內容統計報告",
-        subtitle=subtitle,
+        subtitle=subtitle or None,
     )
     st.download_button(
         label="匯出 Word (.docx)",
