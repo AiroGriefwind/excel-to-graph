@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-# 报表固定列（第 4 行）
-RAW_COLUMNS = ["日期", "平台", "標題", "形式", "連結", "瀏覽量", "互動量"]
+# 报表固定列（第 4 行；列顺序可变，按列名识别）
+RAW_COLUMNS = ["日期", "平台", "形式", "標題", "連結", "瀏覽量", "互動量"]
 
 # 内部标准字段
 STANDARD_COLUMNS = [

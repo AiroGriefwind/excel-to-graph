@@ -7,6 +7,7 @@ from typing import Iterable
 import pandas as pd
 
 from .constants import COLUMN_ALIASES, STANDARD_COLUMNS
+from .format_normalize import apply_format_normalization
 
 
 def _normalize_column_name(column_name: str) -> str:
@@ -115,7 +116,23 @@ def parse_single_excel(file_obj, source_name: str | None = None) -> pd.DataFrame
     for col in text_cols:
         df[col] = df[col].replace({"None": "", "nan": ""})
 
+    # 去掉 Excel 末尾统计行（数据结束后常空一行，再出现「總數」）
+    df = _drop_summary_rows(df)
+
+    # 形式归一化（筛选器用）；原始值保留在 format_raw，卡片展示用 format_raw
+    df = apply_format_normalization(df)
+
     return df.reset_index(drop=True)
+
+
+def _drop_summary_rows(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty:
+        return df
+
+    format_series = df["format"].astype(str).str.strip()
+    # Excel 数据区结束后的统计行（形式列常见为「總數」）
+    summary_mask = format_series.isin({"總數", "总数", "合計", "合计"})
+    return df.loc[~summary_mask].copy()
 
 
 def parse_multiple_excels(files: Iterable) -> pd.DataFrame:
@@ -124,7 +141,7 @@ def parse_multiple_excels(files: Iterable) -> pd.DataFrame:
         frames.append(parse_single_excel(file_obj, source_name=getattr(file_obj, "name", None)))
 
     if not frames:
-        return pd.DataFrame(columns=STANDARD_COLUMNS + ["source_file"])
+        return pd.DataFrame(columns=STANDARD_COLUMNS + ["source_file", "format_raw"])
 
     return pd.concat(frames, ignore_index=True)
 

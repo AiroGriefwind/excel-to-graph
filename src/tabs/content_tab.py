@@ -42,7 +42,8 @@ def _render_card(row: pd.Series) -> None:
     title = html.escape(str(row.get("title", "")))
     platform = html.escape(str(row.get("platform", "")))
     date = html.escape(str(row.get("date", "")))
-    form = html.escape(str(row.get("format", "")))
+    # 展示原始形式；筛选分类在 format，不覆盖卡片展示
+    form = html.escape(str(row.get("format_raw") or row.get("format", "")))
     link = html.escape(str(row.get("link", "")))
     views = f"{float(row.get('views', 0)):,.0f}"
     interactions = f"{float(row.get('interactions', 0)):,.0f}"

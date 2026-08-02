@@ -25,6 +25,7 @@ excel-to-graph/
       __init__.py
       constants.py
       excel_loader.py
+      format_normalize.py
       filtering.py
       metrics.py
       presets.py
@@ -36,6 +37,7 @@ excel-to-graph/
     smokes/
       smoke_data_pipeline.py
       smoke_filter_presets.py
+      smoke_format_normalize.py
   docs/
     governance/
       IMPLEMENTATION_PLAN.MD
