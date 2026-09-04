@@ -114,3 +114,21 @@
 - 风险/阻塞：无。
 - 下一步：线上 Streamlit 验收折线图悬浮与高低值高亮。
 
+### 2026-08-16 19:26
+- 完成：导出区改为双 TAB：
+  1) TAB1「分類統計表」为原有统计报告（逻辑不变）；
+  2) TAB2「英文版博文表（BastilleGlobal）」为新增：仅列平台 BastilleGlobal 文章，列为 數目（順排編號）/日期（YYYYMMDD）/欄目（暫留空）/標題/瀏覽量（千分位），按日期升序；
+  3) TAB2 同樣提供「受篩選器影響」勾選（默認開）、日期副標題、HTML 預覽與 Word 匯出（標題/欄目列可換行，數字列 noWrap、瀏覽量右對齊）。
+- 新增 `src/utils/bastille_report.py`、`tests/smokes/smoke_bastille_report.py`。
+- 验证：`smoke_bastille_report.py`（合成數據 + mock 樣本 50 篇）及其余 4 個冒煙腳本全部通过。
+- 风险/阻塞：「欄目」Excel 暫無來源數據，目前固定留空；後續若 Excel 增加欄目/作者列需補解析映射。
+- 下一步：线上 Redeploy 验收 TAB 切换与博文表导出版式。
+
+### 2026-09-04 16:11
+- 完成：项目与治理文档全面对齐复查，并落地两笔治理动作：
+  1) 提交并推送 2026-08-16 的 Bastille 双 TAB 导出工作（此前仅存在于工作区，远端停在 `f7a1ada`）；
+  2) 清理 git 对 `__pycache__/*.pyc`（18 个文件）的跟踪——`.gitignore` 规则早已存在，但初始提交先于规则，需 `git rm -r --cached` 才生效。
+- 验证：完整阅读 6 份治理文档并逐项核对（STRUCTURE 与实际目录一致、TECHSTACK 与 `requirements.txt` 一致、PRD 必做 8 项全部落地）；`python -m compileall` 通过；5 个冒烟脚本全部通过（数据管道 173 条记录）。
+- 风险/阻塞：无。
+- 下一步：线上 Redeploy 验收 TAB 切换与博文表导出版式（依赖本次推送完成）。
+
