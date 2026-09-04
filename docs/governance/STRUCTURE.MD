@@ -32,6 +32,7 @@ excel-to-graph/
       presets.py
       chart_data.py
       report_export.py
+      bastille_report.py
       state.py
   tests/
     mocks/
@@ -41,6 +42,7 @@ excel-to-graph/
       smoke_filter_presets.py
       smoke_format_normalize.py
       smoke_report_export.py
+      smoke_bastille_report.py
   docs/
     governance/
       IMPLEMENTATION_PLAN.MD
