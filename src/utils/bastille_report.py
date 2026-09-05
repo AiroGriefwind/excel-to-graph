@@ -8,7 +8,13 @@ from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Cm
 
-from .report_export import _apply_table_grid, _set_cell_no_wrap, _set_run_font, format_report_number
+from .report_export import (
+    _apply_table_grid,
+    _set_cell_no_wrap,
+    _set_narrow_page_margins,
+    _set_run_font,
+    format_report_number,
+)
 
 # 平台識別關鍵字（不區分大小寫）
 BASTILLE_PLATFORM_KEYWORD = "bastilleglobal"
@@ -16,9 +22,10 @@ BASTILLE_PLATFORM_KEYWORD = "bastilleglobal"
 # 博文表固定列；「欄目」取自 Excel 欄目列（新格式第 3 列，無欄目時 Excel 寫 "-"）
 BASTILLE_COLUMNS = ["數目", "日期", "欄目", "標題", "瀏覽量"]
 
-# Word 列寬（cm）：標題最寬且允許換行；欄目允許換行；數字列 noWrap。
-# 合計 15.5cm，貼合 A4 預設頁邊距下的可用寬度（約 15.9cm）。
-_COLUMN_WIDTHS_CM = [1.2, 1.9, 2.6, 7.7, 2.1]
+# Word 列寬（cm）：標題最寬且允許換行；欄目允許換行；日期/數字列 noWrap 且必須單行容納。
+# 日期 8 位數字（YYYYMMDD）約需 1.6cm 內容寬，2.1cm + 收窄內邊距可保證不折行。
+# 合計 17.9cm，配合 1.5cm 頁邊距（可用 18cm）。
+_COLUMN_WIDTHS_CM = [1.2, 2.1, 2.6, 10.2, 1.8]
 _NO_WRAP_COLUMNS = {"數目", "日期", "瀏覽量"}
 _RIGHT_ALIGN_COLUMNS = {"瀏覽量"}
 
@@ -106,7 +113,8 @@ def build_bastille_docx(
     table.style = "Table Grid"
     table.autofit = False
     table.allow_autofit = False
-    _apply_table_grid(table, list(_COLUMN_WIDTHS_CM))
+    _set_narrow_page_margins(doc)
+    _apply_table_grid(table, list(_COLUMN_WIDTHS_CM), cell_margin_cm=0.15)
 
     header_cells = table.rows[0].cells
     for idx, col_name in enumerate(BASTILLE_COLUMNS):

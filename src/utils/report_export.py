@@ -129,11 +129,17 @@ def _set_cell_no_wrap(cell) -> None:
     tc_pr.append(OxmlElement("w:noWrap"))
 
 
-def _apply_table_grid(table, widths_cm: list[float]) -> None:
+def _apply_table_grid(
+    table,
+    widths_cm: list[float],
+    *,
+    cell_margin_cm: float | None = None,
+) -> None:
     """
     將列寬寫入表格層級的 tblGrid/tblW（1cm = 567 twips）。
     僅設置單元格 tcW 時 Word 固定布局仍按建表時均分的 tblGrid 渲染（表現為等寬），
     必須同時重寫網格列寬才能生效。
+    cell_margin_cm：可選，收窄單元格左右內邊距（預設 0.19cm/側），讓內容獲得更多有效寬度。
     """
     tbl = table._tbl
     tbl_pr = tbl.tblPr
@@ -145,6 +151,23 @@ def _apply_table_grid(table, widths_cm: list[float]) -> None:
     tbl_w.set(qn("w:type"), "dxa")
     tbl_w.set(qn("w:w"), str(int(round(sum(widths_cm) * 567))))
 
+    if cell_margin_cm is not None:
+        for old_mar in tbl_pr.findall(qn("w:tblCellMar")):
+            tbl_pr.remove(old_mar)
+        mar = OxmlElement("w:tblCellMar")
+        side_dxa = str(int(round(cell_margin_cm * 567)))
+        for side in ("top", "left", "bottom", "right"):
+            el = OxmlElement(f"w:{side}")
+            el.set(qn("w:w"), side_dxa if side in ("left", "right") else "0")
+            el.set(qn("w:type"), "dxa")
+            mar.append(el)
+        # schema 順序：tblCellMar 位於 tblLook 之前
+        tbl_look = tbl_pr.find(qn("w:tblLook"))
+        if tbl_look is not None:
+            tbl_look.addprevious(mar)
+        else:
+            tbl_pr.append(mar)
+
     for old_grid in tbl.findall(qn("w:tblGrid")):
         tbl.remove(old_grid)
     grid = OxmlElement("w:tblGrid")
@@ -154,6 +177,13 @@ def _apply_table_grid(table, widths_cm: list[float]) -> None:
         grid.append(col)
     # tblGrid 必須緊跟 tblPr 之後（schema 順序）
     tbl_pr.addnext(grid)
+
+
+def _set_narrow_page_margins(doc, side_cm: float = 1.5) -> None:
+    """收窄頁面左右邊距，讓表格獲得更寬的可用區域（A4 預設 2.54cm/側 -> 1.5cm）。"""
+    for section in doc.sections:
+        section.left_margin = Cm(side_cm)
+        section.right_margin = Cm(side_cm)
 
 
 def _estimate_text_width_cm(text: str) -> float:
@@ -221,9 +251,10 @@ def build_report_docx(
     table.style = "Table Grid"
     table.autofit = False
     table.allow_autofit = False
+    _set_narrow_page_margins(doc)
 
     widths_cm = _compute_column_widths_cm(report_df)
-    _apply_table_grid(table, widths_cm)
+    _apply_table_grid(table, widths_cm, cell_margin_cm=0.15)
     _apply_row_widths(table.rows[0].cells, widths_cm)
 
     header_cells = table.rows[0].cells

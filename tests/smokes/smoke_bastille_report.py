@@ -78,11 +78,14 @@ def main() -> None:
     assert docx_bytes[:2] == b"PK"  # docx 是 zip 容器
     assert len(docx_bytes) > 1000
 
-    # Word 列寬：tblGrid 必須按列設定（等寬=回歸），標題列（第 4 列）應最寬
+    # Word 列寬：tblGrid 必須按列設定（等寬=回歸），標題列（第 4 列）應最寬；
+    # 日期列需 ≥2.0cm 才能單行容納 YYYYMMDD；總寬不超過 1.5cm 邊距下的可用寬度（18cm）
     widths = _gridcol_widths(docx_bytes)
     assert len(widths) == len(BASTILLE_COLUMNS)
     assert len(set(widths)) > 1, "各列寬度不應等寬"
     assert widths[3] == max(widths), "標題列應最寬"
+    assert widths[1] >= int(round(2.0 * 567)), "日期列應足以單行容納 YYYYMMDD"
+    assert sum(widths) <= int(round(18.0 * 567)), "總寬不應超過頁面可用寬度"
 
     print("[OK] BastilleGlobal 博文表冒煙通過")
     print(f"- mock 樣本 BastilleGlobal 文章數: {len(real_table)}")
