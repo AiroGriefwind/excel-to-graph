@@ -61,6 +61,7 @@ excel-to-graph/
   - `platform`
   - `title`
   - `format`
+  - `section`（欄目，新格式 Excel 提供，旧文件为空）
   - `link`
   - `views`
   - `interactions`

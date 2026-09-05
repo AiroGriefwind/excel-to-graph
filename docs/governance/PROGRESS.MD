@@ -152,3 +152,12 @@
 - 风险/阻塞：无。
 - 下一步：线上 Redeploy 验收：确认报表显示「專題報道」（而非「專題」）与「專題文章」，數目与 Excel 原表一致。
 
+### 2026-09-04 18:10
+- 完成：解析「欄目」列并填充英文版博文表（用户反馈：新 Excel 的欄目数据存在但博文表显示「暫無數據」）：
+  1) 新 Excel 表头为 8 列（`日期|平台|欄目|標題|形式|連結|瀏覽量|互動量`，較旧格式新增欄目且標題/形式换位），解析按列名识别故其余列无碍；`COLUMN_ALIASES` 增加 `欄目/栏目 -> section`，`STANDARD_COLUMNS` 纳入 `section`（旧文件无此列自动置空）；
+  2) `excel_loader.py` 对 `section` 做文本清洗（strip + None/nan 噪音剔除）；
+  3) `bastille_report.py` 博文表「欄目」改由 `section` 填充（`-` 原样保留、缺失留空）；`export_tab.py` 提示按实际数据切换（有欄目数据时不再显示「暫無數據」）。
+- 验证：5 个冒烟脚本通过（`smoke_bastille_report.py` 增加 section 填充断言）；真实新文件 `國安專頁 Daily Report_260901.xlsx` 端到端：解析 409 行、BastilleGlobal 62 篇、欄目填充（Bastille Commentary/SD Advocates/Deep Throat 等）；报表專題報道 21/112,625、專題文章 5/14,980 与用户线上截图数字一致；mock 回归不变。
+- 风险/阻塞：`section` 目前仅用于博文表；筛选器与卡片未暴露欄目维度（可作后续迭代）。
+- 下一步：线上 Redeploy 验收：英文版博文表欄目列有值、Word 导出欄目列版式正常。
+

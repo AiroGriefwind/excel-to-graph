@@ -20,12 +20,12 @@ from src.utils.excel_loader import parse_multiple_excels  # noqa: E402
 
 
 def main() -> None:
-    # 合成數據：驗證篩選、排序、編號、日期格式、欄目留空
+    # 合成數據：驗證篩選、排序、編號、日期格式、欄目填充
     df = pd.DataFrame(
         [
-            {"platform": "BastilleGlobal", "title": "Later Post", "date": "2026-08-03", "views": 100},
-            {"platform": "巴士的報", "title": "中文新聞", "date": "2026-08-01", "views": 999},
-            {"platform": "BastilleGlobal", "title": "Early Post", "date": "2026-08-01", "views": 200},
+            {"platform": "BastilleGlobal", "title": "Later Post", "date": "2026-08-03", "views": 100, "section": "Bastille Commentary"},
+            {"platform": "巴士的報", "title": "中文新聞", "date": "2026-08-01", "views": 999, "section": "止戈堂"},
+            {"platform": "BastilleGlobal", "title": "Early Post", "date": "2026-08-01", "views": 200, "section": "-"},
             {"platform": "bastilleglobal", "title": "No Date Post", "date": None, "views": 50},
         ]
     )
@@ -37,7 +37,7 @@ def main() -> None:
     assert table["標題"].tolist() == ["Early Post", "Later Post", "No Date Post"], "應按日期升序，無日期排最後"
     assert table["日期"].tolist()[:2] == ["20260801", "20260803"], "日期應為 YYYYMMDD"
     assert table["日期"].iloc[2] == "", "無日期應留空"
-    assert (table["欄目"] == "").all(), "欄目應留空"
+    assert table["欄目"].tolist() == ["-", "Bastille Commentary", ""], "欄目應取自 section（缺失留空，'-' 原樣保留）"
     assert table["瀏覽量"].tolist() == [200, 100, 50]
 
     # 空表 / 無匹配平台

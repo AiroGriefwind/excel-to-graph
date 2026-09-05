@@ -11,6 +11,7 @@ STANDARD_COLUMNS = [
     "platform",
     "title",
     "format",
+    "section",
     "link",
     "views",
     "interactions",
@@ -19,6 +20,8 @@ STANDARD_COLUMNS = [
 COLUMN_ALIASES = {
     "日期": "date",
     "平台": "platform",
+    "欄目": "section",
+    "栏目": "section",
     "標題": "title",
     "标题": "title",
     "形式": "format",

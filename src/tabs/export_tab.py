@@ -242,7 +242,11 @@ def _render_bastille_report(raw_df: pd.DataFrame, filtered_df: pd.DataFrame) -> 
         return
 
     _render_bastille_preview_html(table_df)
-    st.caption(f"共 {len(table_df)} 篇。「欄目」暫無數據，預留空白列。")
+    has_section = table_df["欄目"].astype(str).str.strip().ne("").any()
+    if has_section:
+        st.caption(f"共 {len(table_df)} 篇。")
+    else:
+        st.caption(f"共 {len(table_df)} 篇。「欄目」暫無數據，預留空白列。")
 
     docx_bytes = build_bastille_docx(
         table_df,

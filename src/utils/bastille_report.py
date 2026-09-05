@@ -13,7 +13,7 @@ from .report_export import _set_cell_no_wrap, _set_run_font, format_report_numbe
 # 平台識別關鍵字（不區分大小寫）
 BASTILLE_PLATFORM_KEYWORD = "bastilleglobal"
 
-# 博文表固定列；「欄目」目前 Excel 無此數據，暫時留空
+# 博文表固定列；「欄目」取自 Excel 欄目列（新格式第 3 列，無欄目時 Excel 寫 "-"）
 BASTILLE_COLUMNS = ["數目", "日期", "欄目", "標題", "瀏覽量"]
 
 # Word 列寬（cm）；標題/欄目列允許換行，其餘列 noWrap
@@ -25,7 +25,7 @@ _RIGHT_ALIGN_COLUMNS = {"瀏覽量"}
 def filter_bastille_rows(df: pd.DataFrame) -> pd.DataFrame:
     """篩選平台為 BastilleGlobal 的記錄，按日期升序（無日期排最後，同日期保持原順序）。"""
     working = df.copy() if df is not None else pd.DataFrame()
-    for col in ("platform", "title", "views", "date"):
+    for col in ("platform", "title", "views", "date", "section"):
         if col not in working.columns:
             working[col] = None
 
@@ -43,19 +43,26 @@ def filter_bastille_rows(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_bastille_table(df: pd.DataFrame) -> pd.DataFrame:
-    """生成 BastilleGlobal 博文表：數目順排、日期 YYYYMMDD、欄目留空。"""
+    """生成 BastilleGlobal 博文表：數目順排、日期 YYYYMMDD、欄目取自 Excel（缺失留空）。"""
     subset = filter_bastille_rows(df)
     if subset.empty:
         return pd.DataFrame(columns=BASTILLE_COLUMNS)
 
     dates = pd.to_datetime(subset["date"], errors="coerce")
     views = pd.to_numeric(subset["views"], errors="coerce").fillna(0)
+    sections = (
+        subset["section"]
+        .astype(str)
+        .str.strip()
+        .replace({"None": "", "nan": "", "NaN": ""})
+        .tolist()
+    )
 
     table = pd.DataFrame(
         {
             "數目": range(1, len(subset) + 1),
             "日期": [d.strftime("%Y%m%d") if pd.notna(d) else "" for d in dates],
-            "欄目": "",
+            "欄目": sections,
             "標題": subset["title"].astype(str).tolist(),
             "瀏覽量": [int(round(v)) for v in views],
         },

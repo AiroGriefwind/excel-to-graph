@@ -104,6 +104,7 @@ def parse_single_excel(file_obj, source_name: str | None = None) -> pd.DataFrame
     df["platform"] = df["platform"].astype(str).str.strip()
     df["title"] = df["title"].astype(str).str.strip()
     df["format"] = df["format"].astype(str).str.strip()
+    df["section"] = df["section"].astype(str).str.strip()
     df["link"] = df["link"].astype(str).str.strip()
     df["views"] = _clean_numeric(df["views"])
     df["interactions"] = _clean_numeric(df["interactions"])
@@ -112,7 +113,7 @@ def parse_single_excel(file_obj, source_name: str | None = None) -> pd.DataFrame
     df["source_file"] = Path(file_name).name
 
     # 去掉由缺失值造成的 "None"/"nan" 文本噪音
-    text_cols = ["platform", "title", "format", "link"]
+    text_cols = ["platform", "title", "format", "section", "link"]
     for col in text_cols:
         df[col] = df[col].replace({"None": "", "nan": ""})
 
