@@ -187,9 +187,9 @@ def _render_summary_report(raw_df: pd.DataFrame, filtered_df: pd.DataFrame) -> N
 
     source_df = filtered_df if respect_filters else raw_df
     if respect_filters:
-        st.caption("當前模式：跟隨篩選器。僅統計下列固定分類。")
+        st.caption("當前模式：跟隨篩選器。錨定分類之外的形式將自動單獨成行。")
     else:
-        st.caption("當前模式：統計全部上傳數據（不受篩選器影響）。僅統計下列固定分類。")
+        st.caption("當前模式：統計全部上傳數據（不受篩選器影響）。錨定分類之外的形式將自動單獨成行。")
 
     active_filters = st.session_state.get("active_filters") or {}
     subtitle = _date_range_subtitle(active_filters, raw_df)
@@ -200,7 +200,7 @@ def _render_summary_report(raw_df: pd.DataFrame, filtered_df: pd.DataFrame) -> N
     _render_preview_html(report_df)
 
     covered = "、".join(label for _, label in REPORT_CATEGORY_ROWS)
-    st.caption(f"分項分類：{covered}")
+    st.caption(f"錨定分類：{covered}（數據中出現的其他形式自動成行）")
 
     docx_bytes = build_report_docx(
         report_df,

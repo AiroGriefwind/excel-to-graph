@@ -16,7 +16,8 @@ from src.utils.report_export import (  # noqa: E402
 )
 
 
-def main() -> None:
+def check_anchor_only_regression() -> None:
+    """全部形式都在錨定分類內時，報表與舊版版式完全一致（無動態行）。"""
     df = pd.DataFrame(
         [
             {"format": "評論/博客文章（中）", "views": 100, "interactions": 10},
@@ -26,7 +27,7 @@ def main() -> None:
             {"format": "專題報道", "views": 300, "interactions": 30},
             {"format": "影片", "views": 400, "interactions": 40},
             {"format": "帖文", "views": 20, "interactions": 2},
-            {"format": "新聞報道", "views": 999, "interactions": 99},  # 不應計入報表總數
+            {"format": "新聞報道", "views": 999, "interactions": 99},
         ]
     )
 
@@ -53,14 +54,81 @@ def main() -> None:
     assert float(zh["平均瀏覽量"]) == 75.0
 
     total = report.loc[report["分類"] == "總數"].iloc[0]
-    assert int(total["數目"]) == 8  # 含新聞報道
+    assert int(total["數目"]) == 8
     assert int(total["瀏覽量"]) == 2149
     assert total["平均互動量"] == ""  # 總數行不統計平均互動量
+
+
+def check_dynamic_categories() -> None:
+    """錨定之外的形式（專題報告/專題文章/直播等）自動成行；繁簡寫法併入錨定行；總數=全量。"""
+    df = pd.DataFrame(
+        [
+            {"format": "專題報道", "views": 100, "interactions": 10},
+            {"format": "專題報告", "views": 300, "interactions": 30},
+            {"format": "專題文章", "views": 50, "interactions": 5},
+            {"format": "直播", "views": 200, "interactions": 20},
+            {"format": "貼文", "views": 40, "interactions": 4},  # 繁體寫法，應併入錨定「貼文」行
+            {"format": "帖文", "views": 60, "interactions": 6},
+            {"format": "", "views": 7, "interactions": 1},  # 形式為空 -> 未標註形式
+        ]
+    )
+
+    report = build_report_table(df)
+    assert list(report["分類"]) == [
+        "新聞報道",
+        "評論/博文（中）",
+        "評論/博文（中）連視頻",
+        "評論/博文（英）",
+        "評論/博文（英）連視頻",
+        "專題",
+        "影片",
+        "貼文",
+        "專題報告",  # 動態行按瀏覽量降序
+        "直播",
+        "專題文章",
+        "未標註形式",
+        "總數",
+    ]
+
+    topic = report.loc[report["分類"] == "專題"].iloc[0]
+    assert int(topic["數目"]) == 1
+    assert int(topic["瀏覽量"]) == 100
+
+    post = report.loc[report["分類"] == "貼文"].iloc[0]
+    assert int(post["數目"]) == 2  # 帖文 + 貼文 併入同一行
+    assert int(post["瀏覽量"]) == 100
+
+    report_zh = report.loc[report["分類"] == "專題報告"].iloc[0]
+    assert int(report_zh["數目"]) == 1
+    assert int(report_zh["瀏覽量"]) == 300
+
+    unlabeled = report.loc[report["分類"] == "未標註形式"].iloc[0]
+    assert int(unlabeled["數目"]) == 1
+
+    total = report.loc[report["分類"] == "總數"].iloc[0]
+    assert int(total["數目"]) == 7  # 全量（不再只統計白名單）
+    assert int(total["瀏覽量"]) == 757
+
+    # 分項加總 = 總數
+    parts = report[report["分類"] != "總數"]
+    assert int(parts["數目"].sum()) == 7
+    assert int(parts["瀏覽量"].sum()) == 757
+
+    docx_bytes = build_report_docx(report)
+    assert docx_bytes[:2] == b"PK"
+
+
+def main() -> None:
+    check_anchor_only_regression()
+    check_dynamic_categories()
 
     assert format_report_number(8818979) == "8,818,979"
     assert format_report_number(12344.8) == "12,344.8"
     assert format_report_number("") == ""
 
+    report = build_report_table(
+        pd.DataFrame([{"format": "評論/博客文章（中）", "views": 100, "interactions": 10}])
+    )
     docx_bytes = build_report_docx(report)
     assert docx_bytes[:2] == b"PK"  # docx 是 zip 容器
     assert len(docx_bytes) > 1000

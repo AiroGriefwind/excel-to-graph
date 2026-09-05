@@ -11,17 +11,21 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt
 
-# (內部歸一化 format, 報表展示行名)
-REPORT_CATEGORY_ROWS: list[tuple[str, str]] = [
-    ("新聞報道", "新聞報道"),
-    ("評論/博客文章（中）", "評論/博文（中）"),
-    ("評論/博客文章（連視頻）（中）", "評論/博文（中）連視頻"),
-    ("評論/博客文章（英）", "評論/博文（英）"),
-    ("評論/博客文章（連視頻）（英）", "評論/博文（英）連視頻"),
-    ("專題報道", "專題"),
-    ("影片", "影片"),
-    ("帖文", "貼文"),
+# (內部歸一化 format 候選值, 報表展示行名)：候選值涵蓋簡/繁等寫法變體，全部併入該錨定行；
+# 錨定行永遠顯示、順序固定。錨定之外的形式由 build_report_table 動態成行。
+REPORT_CATEGORY_ROWS: list[tuple[tuple[str, ...], str]] = [
+    (("新聞報道",), "新聞報道"),
+    (("評論/博客文章（中）",), "評論/博文（中）"),
+    (("評論/博客文章（連視頻）（中）",), "評論/博文（中）連視頻"),
+    (("評論/博客文章（英）",), "評論/博文（英）"),
+    (("評論/博客文章（連視頻）（英）",), "評論/博文（英）連視頻"),
+    (("專題報道", "專題"), "專題"),
+    (("影片",), "影片"),
+    (("帖文", "貼文"), "貼文"),
 ]
+
+# 形式為空（或 NaN）的行歸入此動態行
+UNLABELED_FORMAT_LABEL = "未標註形式"
 
 # 內部列名（唯一）；匯出 Word 表頭用 DISPLAY_COLUMNS
 REPORT_COLUMNS = ["分類", "數目", "瀏覽量", "平均瀏覽量", "互動量", "平均互動量"]
@@ -75,22 +79,32 @@ def _row_metrics(subset: pd.DataFrame) -> dict[str, float | int]:
 
 
 def build_report_table(df: pd.DataFrame) -> pd.DataFrame:
-    """按固定分類行構建報表預覽表（基於全部上傳數據）。"""
+    """構建報表：錨定分類行（固定順序、永遠顯示）+ 動態行（數據中出現的新形式自動成行）+ 總數。"""
     working = df.copy() if df is not None else pd.DataFrame()
     if "format" not in working.columns:
         working["format"] = ""
 
     rows: list[dict] = []
     matched_formats: list[str] = []
-    for internal_format, label in REPORT_CATEGORY_ROWS:
-        subset = working[working["format"] == internal_format]
+    for internal_formats, label in REPORT_CATEGORY_ROWS:
+        subset = working[working["format"].isin(internal_formats)]
         metrics = _row_metrics(subset)
         rows.append({"分類": label, **metrics})
-        matched_formats.append(internal_format)
+        matched_formats.extend(internal_formats)
 
-    # 總數：僅統計報表列出的分類，保證分項加總一致
-    total_subset = working[working["format"].isin(matched_formats)]
-    total_metrics = _row_metrics(total_subset)
+    # 動態行：錨定分類之外的形式各自成行（按瀏覽量降序）；形式為空歸入「未標註形式」
+    remaining = working[~working["format"].isin(matched_formats)]
+    dynamic_rows: list[tuple[str, dict]] = []
+    for fmt, subset in remaining.groupby("format", dropna=False):
+        text = str(fmt).strip()
+        label = text if text else UNLABELED_FORMAT_LABEL
+        dynamic_rows.append((label, _row_metrics(subset)))
+    dynamic_rows.sort(key=lambda item: item[1]["瀏覽量"], reverse=True)
+    for label, metrics in dynamic_rows:
+        rows.append({"分類": label, **metrics})
+
+    # 總數 = 全部數據：錨定行 + 動態行完整覆蓋，保證分項加總一致
+    total_metrics = _row_metrics(working)
     # 總數行的「平均互動量」不統計（數據稀疏時意義不大）
     total_metrics["平均互動量"] = ""
     rows.append({"分類": TOTAL_LABEL, **total_metrics})
