@@ -129,6 +129,33 @@ def _set_cell_no_wrap(cell) -> None:
     tc_pr.append(OxmlElement("w:noWrap"))
 
 
+def _apply_table_grid(table, widths_cm: list[float]) -> None:
+    """
+    將列寬寫入表格層級的 tblGrid/tblW（1cm = 567 twips）。
+    僅設置單元格 tcW 時 Word 固定布局仍按建表時均分的 tblGrid 渲染（表現為等寬），
+    必須同時重寫網格列寬才能生效。
+    """
+    tbl = table._tbl
+    tbl_pr = tbl.tblPr
+
+    tbl_w = tbl_pr.find(qn("w:tblW"))
+    if tbl_w is None:
+        tbl_w = OxmlElement("w:tblW")
+        tbl_pr.append(tbl_w)
+    tbl_w.set(qn("w:type"), "dxa")
+    tbl_w.set(qn("w:w"), str(int(round(sum(widths_cm) * 567))))
+
+    for old_grid in tbl.findall(qn("w:tblGrid")):
+        tbl.remove(old_grid)
+    grid = OxmlElement("w:tblGrid")
+    for width_cm in widths_cm:
+        col = OxmlElement("w:gridCol")
+        col.set(qn("w:w"), str(int(round(width_cm * 567))))
+        grid.append(col)
+    # tblGrid 必須緊跟 tblPr 之後（schema 順序）
+    tbl_pr.addnext(grid)
+
+
 def _estimate_text_width_cm(text: str) -> float:
     """依內容估算列寬：中文較寬、數字/符號較窄，並加邊距。"""
     width = 0.0
@@ -196,6 +223,7 @@ def build_report_docx(
     table.allow_autofit = False
 
     widths_cm = _compute_column_widths_cm(report_df)
+    _apply_table_grid(table, widths_cm)
     _apply_row_widths(table.rows[0].cells, widths_cm)
 
     header_cells = table.rows[0].cells

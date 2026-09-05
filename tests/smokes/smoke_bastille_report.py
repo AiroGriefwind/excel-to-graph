@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import io
 import re
 import sys
+import zipfile
 from pathlib import Path
 
 import pandas as pd
@@ -17,6 +19,13 @@ from src.utils.bastille_report import (  # noqa: E402
     filter_bastille_rows,
 )
 from src.utils.excel_loader import parse_multiple_excels  # noqa: E402
+
+
+def _gridcol_widths(docx_bytes: bytes) -> list[int]:
+    """從 docx 提取 tblGrid 各列寬（twips），用於斷言列寬未被均分。"""
+    with zipfile.ZipFile(io.BytesIO(docx_bytes)) as z:
+        xml = z.read("word/document.xml").decode("utf-8")
+    return [int(w) for w in re.findall(r'<w:gridCol w:w="(\d+)"', xml)]
 
 
 def main() -> None:
@@ -68,6 +77,12 @@ def main() -> None:
     docx_bytes = build_bastille_docx(real_table)
     assert docx_bytes[:2] == b"PK"  # docx 是 zip 容器
     assert len(docx_bytes) > 1000
+
+    # Word 列寬：tblGrid 必須按列設定（等寬=回歸），標題列（第 4 列）應最寬
+    widths = _gridcol_widths(docx_bytes)
+    assert len(widths) == len(BASTILLE_COLUMNS)
+    assert len(set(widths)) > 1, "各列寬度不應等寬"
+    assert widths[3] == max(widths), "標題列應最寬"
 
     print("[OK] BastilleGlobal 博文表冒煙通過")
     print(f"- mock 樣本 BastilleGlobal 文章數: {len(real_table)}")

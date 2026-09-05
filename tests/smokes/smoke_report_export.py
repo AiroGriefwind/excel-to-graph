@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import io
+import re
 import sys
+import zipfile
 from pathlib import Path
 
 import pandas as pd
@@ -10,10 +13,18 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from src.utils.report_export import (  # noqa: E402
+    DISPLAY_COLUMNS,
     build_report_docx,
     build_report_table,
     format_report_number,
 )
+
+
+def _gridcol_widths(docx_bytes: bytes) -> list[int]:
+    """從 docx 提取 tblGrid 各列寬（twips），用於斷言列寬未被均分。"""
+    with zipfile.ZipFile(io.BytesIO(docx_bytes)) as z:
+        xml = z.read("word/document.xml").decode("utf-8")
+    return [int(w) for w in re.findall(r'<w:gridCol w:w="(\d+)"', xml)]
 
 
 def check_anchor_only_regression() -> None:
@@ -136,6 +147,11 @@ def main() -> None:
     docx_bytes = build_report_docx(report)
     assert docx_bytes[:2] == b"PK"  # docx 是 zip 容器
     assert len(docx_bytes) > 1000
+
+    # Word 列寬：tblGrid 必須按列設定（等寬=回歸）
+    widths = _gridcol_widths(docx_bytes)
+    assert len(widths) == len(DISPLAY_COLUMNS)
+    assert len(set(widths)) > 1, "各列寬度不應等寬"
 
     print("[OK] 報表匯出冒煙通過")
 
