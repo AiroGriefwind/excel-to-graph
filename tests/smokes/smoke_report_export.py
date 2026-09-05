@@ -17,7 +17,7 @@ from src.utils.report_export import (  # noqa: E402
 
 
 def check_anchor_only_regression() -> None:
-    """全部形式都在錨定分類內時，報表與舊版版式完全一致（無動態行）。"""
+    """錨定分類內的形式版式不變；專題族走動態行（行名=原始形式）。"""
     df = pd.DataFrame(
         [
             {"format": "評論/博客文章（中）", "views": 100, "interactions": 10},
@@ -38,11 +38,15 @@ def check_anchor_only_regression() -> None:
         "評論/博文（中）連視頻",
         "評論/博文（英）",
         "評論/博文（英）連視頻",
-        "專題",
         "影片",
         "貼文",
+        "專題報道",  # 動態行：專題族不再有錨定行，行名=原始寫法
         "總數",
     ]
+
+    topic_report = report.loc[report["分類"] == "專題報道"].iloc[0]
+    assert int(topic_report["數目"]) == 1
+    assert int(topic_report["瀏覽量"]) == 300
 
     news = report.loc[report["分類"] == "新聞報道"].iloc[0]
     assert int(news["數目"]) == 1
@@ -60,7 +64,7 @@ def check_anchor_only_regression() -> None:
 
 
 def check_dynamic_categories() -> None:
-    """錨定之外的形式（專題報告/專題文章/直播等）自動成行；繁簡寫法併入錨定行；總數=全量。"""
+    """錨定之外的形式（含專題族）自動成行；繁簡寫法併入錨定行；總數=全量。"""
     df = pd.DataFrame(
         [
             {"format": "專題報道", "views": 100, "interactions": 10},
@@ -80,19 +84,19 @@ def check_dynamic_categories() -> None:
         "評論/博文（中）連視頻",
         "評論/博文（英）",
         "評論/博文（英）連視頻",
-        "專題",
         "影片",
         "貼文",
-        "專題報告",  # 動態行按瀏覽量降序
+        "專題報告",  # 動態行按瀏覽量降序；專題族各自獨立成行
         "直播",
+        "專題報道",
         "專題文章",
         "未標註形式",
         "總數",
     ]
 
-    topic = report.loc[report["分類"] == "專題"].iloc[0]
-    assert int(topic["數目"]) == 1
-    assert int(topic["瀏覽量"]) == 100
+    topic_coverage = report.loc[report["分類"] == "專題報道"].iloc[0]
+    assert int(topic_coverage["數目"]) == 1
+    assert int(topic_coverage["瀏覽量"]) == 100
 
     post = report.loc[report["分類"] == "貼文"].iloc[0]
     assert int(post["數目"]) == 2  # 帖文 + 貼文 併入同一行
